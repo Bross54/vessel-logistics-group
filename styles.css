@@ -111,7 +111,17 @@ button, input, textarea { font: inherit; }
 .coverage-bg { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(7,19,27,.95), rgba(7,19,27,.42)), url("https://images.pexels.com/photos/119811/pexels-photo-119811.jpeg?auto=compress&cs=tinysrgb&w=2000") center/cover; }
 .coverage-content p { max-width: 600px; color: rgba(255,255,255,.68); }
 .coverage-tags { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 28px; }
-.coverage-tags span { padding: 9px 13px; border: 1px solid rgba(255,255,255,.32); font-size: 10px; letter-spacing: .13em; }
+.coverage-tags span {
+  padding: 10px 15px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.07));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 8px 24px rgba(0,0,0,.16);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  font-size: 10px;
+  letter-spacing: .13em;
+}
 
 .quote { background: #ece9e3; }
 .quote-copy > p { color: var(--muted); }
