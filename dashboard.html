@@ -133,7 +133,95 @@
     </main>
   </div>
 
+  <div class="modal-backdrop" id="quote-modal" hidden>
+    <section class="quote-modal" role="dialog" aria-modal="true" aria-labelledby="quote-modal-title">
+      <header class="quote-modal-head">
+        <div>
+          <span class="section-label">PREPAYMENT DOCUMENT</span>
+          <h2 id="quote-modal-title">Make a quote</h2>
+          <p>Create a versioned quote and generate a client-ready PDF.</p>
+        </div>
+        <button class="modal-close" id="quote-modal-close" type="button" aria-label="Close quote form">×</button>
+      </header>
+
+      <div class="quote-modal-toolbar">
+        <div class="quote-reference">
+          <span>QUOTE</span>
+          <strong id="quote-reference">Preparing...</strong>
+        </div>
+        <button class="secondary-btn" id="fill-inquiry-btn" type="button">Fill from inquiry</button>
+      </div>
+
+      <form class="quote-form" id="quote-form">
+        <section class="form-section">
+          <div class="form-section-head"><span>01</span><div><h3>Client information</h3><p>Enter manually or use the inquiry details.</p></div></div>
+          <div class="form-grid three">
+            <label>CLIENT NAME<input name="client_name" type="text" required maxlength="160"></label>
+            <label>COMPANY<input name="client_company" type="text" required maxlength="200"></label>
+            <label>EMAIL<input name="client_email" type="email" required maxlength="320"></label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-head"><span>02</span><div><h3>Shipment information</h3><p>Describe the equipment, route, and freight.</p></div></div>
+          <div class="form-grid two">
+            <label>TRUCK / EQUIPMENT<input name="truck" type="text" required maxlength="160" placeholder="e.g. 53' Dry Van"></label>
+            <label>FREIGHT WEIGHT<input name="freight_weight" type="text" required maxlength="160" placeholder="e.g. 24,000 lb"></label>
+            <label>FREIGHT DIMENSIONS<input name="freight_dimensions" type="text" required maxlength="240" placeholder="e.g. 48 x 40 x 60 in"></label>
+            <label>ORIGIN<input name="origin" type="text" required maxlength="240"></label>
+            <label>DESTINATION<input name="destination" type="text" required maxlength="240"></label>
+            <label class="span-two">WHAT IS BEING TRANSPORTED<textarea name="freight_description" required maxlength="4000" rows="4"></textarea></label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-head split"><span>03</span><div><h3>Pricing</h3><p>Add each charge separately.</p></div><button class="text-btn" id="add-line-item" type="button">+ Add item</button></div>
+          <div class="line-items-head" aria-hidden="true"><span>DESCRIPTION</span><span>QTY</span><span>UNIT PRICE</span><span>AMOUNT</span><span></span></div>
+          <div class="line-items" id="line-items"></div>
+          <div class="quote-totals">
+            <label>TAX RATE (%)<input id="tax-rate" name="tax_rate" type="number" required min="0" max="100" step="0.001" value="0"></label>
+            <dl>
+              <div><dt>Subtotal</dt><dd id="quote-subtotal">$0.00</dd></div>
+              <div><dt>Tax</dt><dd id="quote-tax">$0.00</dd></div>
+              <div class="grand-total"><dt>Total</dt><dd id="quote-total">$0.00</dd></div>
+            </dl>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-head"><span>04</span><div><h3>Terms</h3><p>Demo ACH and wire instructions are added to the PDF.</p></div></div>
+          <div class="form-grid two">
+            <label>VALID UNTIL<input name="valid_until" type="date" required></label>
+            <label>PAYMENT TERMS<textarea name="payment_terms" required maxlength="2000" rows="3">Payment due before pickup. ACH or wire transfer accepted.</textarea></label>
+            <label class="span-two">ADDITIONAL NOTES<textarea name="notes" maxlength="4000" rows="3" placeholder="Optional"></textarea></label>
+          </div>
+        </section>
+
+        <footer class="quote-form-actions">
+          <span>Tax defaults to 0% and should be adjusted for the applicable jurisdiction.</span>
+          <div>
+            <button class="secondary-btn" id="quote-cancel" type="button">Cancel</button>
+            <button class="primary-btn" id="generate-quote-btn" type="submit">Save & generate PDF</button>
+          </div>
+        </footer>
+      </form>
+
+      <section class="quote-result" id="quote-result" hidden>
+        <div class="file-card">
+          <span class="file-icon">PDF</span>
+          <div><strong id="quote-file-name">Quote.pdf</strong><span id="quote-file-meta">Saved to Supabase</span></div>
+        </div>
+        <div class="result-actions">
+          <button class="secondary-btn" id="download-quote-btn" type="button">Download PDF</button>
+          <button class="primary-btn" id="send-quote-btn" type="button">Send to client</button>
+        </div>
+        <p>The PDF will be downloaded before your email app opens. Attach the downloaded file to the prepared email.</p>
+      </section>
+    </section>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
   <script type="module" src="/dashboard.js"></script>
 </body>
 </html>
