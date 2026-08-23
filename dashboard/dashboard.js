@@ -103,7 +103,7 @@ document.querySelector('#refresh-btn').addEventListener('click', async event => 
 async function loadRequests() {
   const { data, error } = await supabase
     .from('quote_requests')
-    .select('id,name,company,email,phone,pickup_city_state,delivery_city_state,load_details,status,created_at')
+    .select('id,name,company,email,phone,phone_e164,freight_type,load_details,additional_comment,status,created_at')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -257,13 +257,13 @@ function renderTable() {
     company.textContent = request.company || request.email;
     contact.append(contactName, company);
 
-    const route = document.createElement('td');
-    route.className = 'route-cell';
-    const origin = document.createElement('strong');
-    origin.textContent = request.pickup_city_state || 'Origin not provided';
-    const destination = document.createElement('span');
-    destination.textContent = request.delivery_city_state ? `→ ${request.delivery_city_state}` : 'Destination not provided';
-    route.append(origin, destination);
+    const subject = document.createElement('td');
+    subject.className = 'route-cell';
+    const subjectText = document.createElement('strong');
+    subjectText.textContent = request.freight_type || 'No subject';
+    const emailText = document.createElement('span');
+    emailText.textContent = request.email;
+    subject.append(subjectText, emailText);
 
     const statusCell = document.createElement('td');
     const select = document.createElement('select');
@@ -287,7 +287,7 @@ function renderTable() {
     view.addEventListener('click', () => openDetails(request));
     actions.append(view);
 
-    row.append(received, contact, route, statusCell, actions);
+    row.append(received, contact, subject, statusCell, actions);
     requestsBody.append(row);
   });
 
@@ -336,20 +336,19 @@ function openDetails(request) {
   document.querySelector('#detail-name').textContent = request.name;
   const grid = document.querySelector('#detail-grid');
   grid.replaceChildren();
-  addDetail(grid, 'COMPANY', request.company);
   addDetail(grid, 'RECEIVED', new Date(request.created_at).toLocaleString('en-US'));
   addDetail(grid, 'EMAIL', request.email);
   addDetail(grid, 'PHONE', request.phone);
-  addDetail(grid, 'PICKUP', request.pickup_city_state);
-  addDetail(grid, 'DELIVERY', request.delivery_city_state);
-  document.querySelector('#detail-message').textContent = request.load_details || 'No load details provided.';
+  addDetail(grid, 'SUBJECT', request.freight_type);
+  addDetail(grid, 'SMS CONSENT', request.additional_comment);
+  document.querySelector('#detail-message').textContent = request.load_details || 'No message provided.';
 
   const emailLink = document.querySelector('#detail-email');
-  emailLink.href = `mailto:${encodeURIComponent(request.email)}?subject=${encodeURIComponent('Vessel Logistics — Your freight quote request')}`;
+  emailLink.href = `mailto:${encodeURIComponent(request.email)}?subject=${encodeURIComponent(`Re: ${request.freight_type || 'Your message to Vessel Logistics'}`)}`;
 
   const phoneLink = document.querySelector('#detail-phone');
-  phoneLink.href = request.phone ? `tel:${request.phone.replace(/[^+\d]/g, '')}` : '#';
-  phoneLink.hidden = !request.phone;
+  phoneLink.href = request.phone_e164 || request.phone ? `tel:${request.phone_e164 || request.phone.replace(/[^+\d]/g, '')}` : '#';
+  phoneLink.hidden = !(request.phone_e164 || request.phone);
 
   dialog.showModal();
 }

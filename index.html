@@ -24,7 +24,7 @@
         <a href="#services">Services</a>
         <a href="#why-us">Why Vessel</a>
       </nav>
-      <a class="btn btn-small nav-cta" href="#quote">Request a Quote</a>
+      <a class="btn btn-small nav-cta" href="#contact">Contact Us</a>
     </div>
   </header>
 
@@ -40,7 +40,7 @@
           Vessel Logistics Group LLC delivers dependable, professional freight transportation with clear communication from pickup to delivery.
         </p>
         <div class="hero-actions">
-          <a class="btn" href="#quote">Get a Freight Quote <span>→</span></a>
+          <a class="btn" href="#contact">Contact Us <span>→</span></a>
           <a class="btn btn-ghost" href="#services">Explore Services</a>
         </div>
         <div class="hero-meta">
@@ -174,13 +174,13 @@
       </div>
     </section>
 
-    <section class="section quote" id="quote">
+    <section class="section quote" id="contact">
       <div class="container quote-grid">
         <div class="quote-copy reveal">
           <div class="quote-heading">
-            <div class="section-kicker">REQUEST A QUOTE</div>
-            <h2>Have freight to move?<br><span>Let’s talk.</span></h2>
-            <p>Send the basic load details and your team can follow up with availability and pricing.</p>
+            <div class="section-kicker">CONTACT US</div>
+            <h2>Have a question?<br><span>Let’s talk.</span></h2>
+            <p>Send us a message and our team will follow up by email or phone.</p>
           </div>
           <div class="quote-side">
             <div class="contact-mini">
@@ -191,127 +191,33 @@
           </div>
         </div>
 
-        <form class="quote-form reveal" id="demo-form">
-          <div class="form-heading"><span>01</span><div><strong>Contact information</strong><small>How our dispatch team can reach you.</small></div></div>
+        <form class="quote-form contact-form reveal" id="demo-form">
+          <div class="form-heading"><span>01</span><div><strong>Contact information</strong><small>Tell us how we can reach you.</small></div></div>
           <div class="field-row">
-            <label>NAME<input type="text" name="name" placeholder="Your name" maxlength="120" autocomplete="name" required></label>
-            <label>COMPANY<input type="text" name="company" placeholder="Company name" maxlength="160" autocomplete="organization" required></label>
+            <label>FIRST NAME<input type="text" name="first_name" placeholder="First name" maxlength="59" autocomplete="given-name" required></label>
+            <label>LAST NAME<input type="text" name="last_name" placeholder="Last name" maxlength="59" autocomplete="family-name" required></label>
           </div>
           <div class="field-row">
-            <label>EMAIL<input type="email" name="email" placeholder="you@company.com" maxlength="254" autocomplete="email" required></label>
+            <label>EMAIL<input type="email" name="email" placeholder="you@example.com" maxlength="254" autocomplete="email" required></label>
             <label>PHONE<input type="tel" name="phone" placeholder="(312) 555-0123" maxlength="14" autocomplete="tel-national" inputmode="tel" required></label>
           </div>
-
-          <div class="form-heading"><span>02</span><div><strong>Cargo information</strong><small>Add each packaging group separately. U.S. units are used.</small></div></div>
-          <div class="field-row">
-            <label>FREIGHT TYPE
-              <select name="freight_type" required>
-                <option value="">Select freight type</option>
-                <option>General Freight</option>
-                <option>Dry Goods</option>
-                <option>Machinery & Equipment</option>
-                <option>Auto Parts</option>
-                <option>Building Materials</option>
-                <option>Retail Goods</option>
-                <option>Food & Beverage (Non-Perishable)</option>
-                <option>Other</option>
-              </select>
-            </label>
-            <label>NUMBER OF PACKAGES<input type="number" id="total-packages" value="1" readonly aria-readonly="true"></label>
-          </div>
-
-          <div class="package-groups" id="package-groups"></div>
-          <button class="add-package-btn" id="add-package-group" type="button">+ Add packaging group</button>
-
-          <div class="shipment-totals">
-            <div class="field-row dimension-row">
-              <label>TOTAL LENGTH (IN)<input type="number" name="total_length_in" min="1" max="1200" step="0.01" placeholder="120" required></label>
-              <label>TOTAL WIDTH (IN)<input type="number" name="total_width_in" min="1" max="240" step="0.01" placeholder="96" required></label>
-            </div>
-            <div class="field-row dimension-row">
-              <label>TOTAL HEIGHT (IN)<input type="number" name="total_height_in" min="1" max="240" step="0.01" placeholder="84" required></label>
-              <label>TOTAL WEIGHT (LB)<input type="number" id="total-weight" name="total_weight_lb" value="0" readonly aria-readonly="true"></label>
-            </div>
-          </div>
-
-          <div class="form-heading"><span>03</span><div><strong>Route and notes</strong><small>Tell us where the freight is going and anything else we should know.</small></div></div>
-          <div class="field-row">
-            <label>ORIGIN
-              <select name="pickup_city_state" required>
-                <option value="">Select state / district</option>
-                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
-                <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
-                <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-                <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
-                <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
-                <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-                <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
-                <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
-                <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-                <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
-                <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
-                <option>Vermont</option><option>Virginia</option><option>Washington</option><option>Washington, D.C.</option>
-                <option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
-              </select>
-            </label>
-            <label>DESTINATION
-              <select name="delivery_city_state" required>
-                <option value="">Select state / district</option>
-                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
-                <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
-                <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-                <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
-                <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
-                <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-                <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
-                <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
-                <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-                <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
-                <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
-                <option>Vermont</option><option>Virginia</option><option>Washington</option><option>Washington, D.C.</option>
-                <option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
-              </select>
-            </label>
-          </div>
-          <label>WHAT ARE YOU SHIPPING?
-            <textarea name="load_details" rows="4" maxlength="4000" placeholder="Describe the commodity, handling needs, dates, and any special requirements..." required></textarea>
-          </label>
-          <label>ADDITIONAL COMMENT
-            <textarea name="additional_comment" rows="3" maxlength="4000" placeholder="Anything else our team should know?"></textarea>
+          <label>SUBJECT<input type="text" name="subject" placeholder="How can we help?" maxlength="120" required></label>
+          <label>MESSAGE<textarea name="message" rows="6" maxlength="4000" placeholder="Write your message..." required></textarea></label>
+          <label class="consent-field">
+            <input type="checkbox" name="sms_consent" value="yes" required>
+            <span>By checking this box, I consent to receive conversational SMS from RMJ Cargobull. Reply STOP to opt-out; Reply HELP for support; Messaging frequency may vary. Visit to see our <a href="https://rmjcargobull.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a> and for our <a href="https://rmjcargobull.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Terms of Service</a>. Message &amp; Data rates may apply.</span>
           </label>
           <input type="text" name="fax_number" tabindex="-1" autocomplete="off" hidden aria-hidden="true">
-          <button class="btn submit-btn" type="submit">Send Quote Request <span>→</span></button>
+          <button class="btn submit-btn" type="submit">Send Message <span>→</span></button>
           <p class="form-status" role="status"></p>
         </form>
-
-        <template id="package-group-template">
-          <fieldset class="package-group">
-            <legend><span>PACKAGING GROUP</span><button class="remove-package-group" type="button">Remove</button></legend>
-            <div class="field-row">
-              <label>PACKAGING TYPE
-                <select class="package-type" required>
-                  <option value="">Select packaging</option><option>Pallet</option><option>Crate</option><option>Box</option><option>Drum</option><option>Other</option>
-                </select>
-              </label>
-              <label class="other-package-field" hidden>OTHER PACKAGING<input class="package-type-other" type="text" maxlength="80" placeholder="Describe packaging"></label>
-              <label>GROUP DESCRIPTION<input class="package-description" type="text" maxlength="240" placeholder="e.g. Machine parts" required></label>
-              <label>QUANTITY<input class="package-quantity" type="number" min="1" max="10000" step="1" value="1" required></label>
-            </div>
-            <div class="package-measurements">
-              <label>WEIGHT EACH (LB)<input class="package-weight" type="number" min="0.01" max="100000" step="0.01" required></label>
-              <label>LENGTH EACH (IN)<input class="package-length" type="number" min="0.01" max="1200" step="0.01" required></label>
-              <label>WIDTH EACH (IN)<input class="package-width" type="number" min="0.01" max="240" step="0.01" required></label>
-              <label>HEIGHT EACH (IN)<input class="package-height" type="number" min="0.01" max="240" step="0.01" required></label>
-            </div>
-          </fieldset>
-        </template>
       </div>
     </section>
 
-    <section class="cta-band" id="contact">
+    <section class="cta-band" id="contact-cta">
       <div class="container cta-inner">
         <div><span>VESSEL LOGISTICS GROUP LLC</span><h2>Your freight. Our responsibility.</h2></div>
-        <a class="btn btn-white" href="#quote">Move Freight With Vessel <span>→</span></a>
+        <a class="btn btn-white" href="#contact">Contact Vessel <span>→</span></a>
       </div>
     </section>
   </main>
@@ -324,7 +230,7 @@
       </div>
       <div>
         <h4>COMPANY</h4>
-        <a href="#about">About</a><a href="#services">Services</a><a href="#why-us">Why Vessel</a><a href="#quote">Request a Quote</a>
+        <a href="#about">About</a><a href="#services">Services</a><a href="#why-us">Why Vessel</a><a href="#contact">Contact Us</a>
       </div>
       <div>
         <h4>CONTACT</h4>

@@ -161,6 +161,10 @@ button, input, textarea { font: inherit; }
 .package-measurements { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
 .shipment-totals { margin-bottom: 20px; padding: 17px; background: #fff0f2; border-left: 3px solid var(--lime); }
 .submit-btn { width: 100%; border: 0; }
+.consent-field { margin: 4px 0 22px !important; padding: 17px; display: grid !important; grid-template-columns: 20px 1fr; align-items: start; gap: 12px !important; color: #51575b !important; background: #f7f7f5; border: 1px solid #d9dcde; font-size: .76rem !important; font-weight: 500 !important; letter-spacing: 0 !important; line-height: 1.6; }
+.consent-field input { width: 18px; height: 18px; margin: 3px 0 0; padding: 0; accent-color: var(--lime); }
+.consent-field a { color: var(--lime-text); font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+.consent-field a:hover { color: var(--lime-hover); }
 .form-status { min-height: 20px; margin: 12px 0 0; text-align: center; color: #14703b; font-size: 12px; }
 
 .cta-band { color: #fff; background: var(--lime); }

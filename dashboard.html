@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="description" content="Private Vessel Logistics analytics and freight quote dashboard.">
+  <meta name="description" content="Private Vessel Logistics analytics and contact inquiry dashboard.">
   <title>Vessel Logistics | Private Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +20,7 @@
       <div class="login-message">
         <span class="eyebrow">PRIVATE OPERATIONS PORTAL</span>
         <h1>Your freight pipeline, all in one place.</h1>
-        <p>Secure access to website analytics and every incoming quote request.</p>
+        <p>Secure access to website analytics and every incoming contact inquiry.</p>
       </div>
       <span class="watermark">VLG</span>
     </div>
@@ -63,7 +63,7 @@
         <div>
           <span class="section-label">VESSEL OPERATIONS</span>
           <h1>Dashboard</h1>
-          <p>Website analytics and incoming freight quote requests.</p>
+          <p>Website analytics and incoming contact inquiries.</p>
         </div>
         <div class="intro-actions">
           <button class="secondary-btn" id="fleet-btn" type="button">Manage fleet</button>
@@ -83,9 +83,9 @@
           <small>Average homepage session</small>
         </article>
         <article class="stat-card">
-          <span>QUOTE REQUESTS</span>
+          <span>CONTACT INQUIRIES</span>
           <strong id="stat-quotes">0</strong>
-          <small>All submitted requests</small>
+          <small>All submitted messages</small>
         </article>
         <article class="stat-card">
           <span>NEW REQUESTS</span>
@@ -114,7 +114,7 @@
       <section class="panel requests-panel">
         <div class="requests-head">
           <div>
-            <span class="section-label">REQUEST A QUOTE</span>
+            <span class="section-label">CONTACT FORM</span>
             <h2>Submitted inquiries</h2>
             <p>Click any row to view the complete request.</p>
           </div>
@@ -125,11 +125,11 @@
         </div>
 
         <div class="request-columns" aria-hidden="true">
-          <span>NAME</span><span>COMPANY</span><span>FREIGHT TYPE</span><span></span>
+          <span>NAME</span><span>SUBJECT</span><span>CONTACT</span><span></span>
         </div>
         <div class="request-list" id="request-list"></div>
         <div class="empty-state" id="empty-state" hidden>
-          <strong>No quote requests found</strong>
+          <strong>No contact inquiries found</strong>
           <span>New submissions will appear here automatically.</span>
         </div>
         <div class="requests-footer"><span id="request-count">0 inquiries</span><span>Newest first</span></div>
@@ -137,101 +137,6 @@
     </main>
   </div>
 
-  <div class="modal-backdrop" id="quote-modal" hidden>
-    <section class="quote-modal" role="dialog" aria-modal="true" aria-labelledby="quote-modal-title">
-      <header class="quote-modal-head">
-        <div>
-          <span class="section-label">PREPAYMENT DOCUMENT</span>
-          <h2 id="quote-modal-title">Make a quote</h2>
-          <p>Create a versioned quote and generate a client-ready PDF.</p>
-        </div>
-        <button class="modal-close" id="quote-modal-close" type="button" aria-label="Close quote form">×</button>
-      </header>
-
-      <div class="quote-modal-toolbar">
-        <div class="quote-reference">
-          <span>QUOTE</span>
-          <strong id="quote-reference">Preparing...</strong>
-        </div>
-        <button class="secondary-btn" id="fill-inquiry-btn" type="button">Fill from inquiry</button>
-      </div>
-
-      <form class="quote-form" id="quote-form">
-        <section class="form-section">
-          <div class="form-section-head"><span>01</span><div><h3>Client information</h3><p>Enter manually or use the inquiry details.</p></div></div>
-          <div class="form-grid three">
-            <label>CLIENT NAME<input name="client_name" type="text" required maxlength="160"></label>
-            <label>COMPANY<input name="client_company" type="text" required maxlength="200"></label>
-            <label>EMAIL<input name="client_email" type="email" required maxlength="320"></label>
-            <label>PHONE<input name="client_phone" type="tel" required maxlength="50"></label>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="form-section-head"><span>02</span><div><h3>Shipment information</h3><p>Describe the equipment, route, and freight.</p></div></div>
-          <div class="form-grid two">
-            <label class="span-two">AVAILABLE TRUCKS
-              <select id="quote-trucks" multiple required aria-describedby="truck-match-help"></select>
-              <small id="truck-match-help">Only available, registration-valid trucks that can carry at least one package group are shown. Select one or more.</small>
-            </label>
-            <label>FREIGHT WEIGHT<input name="freight_weight" type="text" required maxlength="160" placeholder="e.g. 24,000 lb"></label>
-            <label>FREIGHT DIMENSIONS<input name="freight_dimensions" type="text" required maxlength="240" placeholder="e.g. 48 x 40 x 60 in"></label>
-            <label>ORIGIN<input name="origin" type="text" required maxlength="240"></label>
-            <label>DESTINATION<input name="destination" type="text" required maxlength="240"></label>
-            <label class="span-two">WHAT IS BEING TRANSPORTED<textarea name="freight_description" required maxlength="4000" rows="4"></textarea></label>
-          </div>
-          <div class="package-preview" id="quote-package-preview"></div>
-          <div class="allocation-panel" id="truck-allocation-panel" hidden>
-            <div class="allocation-head"><strong>PACKAGE ALLOCATION</strong><span>Assign every package to a selected truck.</span></div>
-            <div id="truck-allocations"></div>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="form-section-head split"><span>03</span><div><h3>Pricing</h3><p>Add each charge separately.</p></div><button class="text-btn" id="add-line-item" type="button">+ Add item</button></div>
-          <div class="line-items-head" aria-hidden="true"><span>DESCRIPTION</span><span>QTY</span><span>UNIT PRICE</span><span>AMOUNT</span><span></span></div>
-          <div class="line-items" id="line-items"></div>
-          <div class="quote-totals">
-            <label>TAX RATE (%)<input id="tax-rate" name="tax_rate" type="number" required min="0" max="100" step="0.001" value="0"></label>
-            <dl>
-              <div><dt>Subtotal</dt><dd id="quote-subtotal">$0.00</dd></div>
-              <div><dt>Tax</dt><dd id="quote-tax">$0.00</dd></div>
-              <div class="grand-total"><dt>Total</dt><dd id="quote-total">$0.00</dd></div>
-            </dl>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="form-section-head"><span>04</span><div><h3>Terms</h3><p>Demo ACH and wire instructions are added to the PDF.</p></div></div>
-          <div class="form-grid two">
-            <label>VALID UNTIL<input name="valid_until" type="date" required></label>
-            <label>PAYMENT TERMS<textarea name="payment_terms" required maxlength="2000" rows="3">Payment due before pickup. ACH or wire transfer accepted.</textarea></label>
-            <label class="span-two">ADDITIONAL NOTES<textarea name="notes" maxlength="4000" rows="3" placeholder="Optional"></textarea></label>
-          </div>
-        </section>
-
-        <footer class="quote-form-actions">
-          <span>Tax defaults to 0% and should be adjusted for the applicable jurisdiction.</span>
-          <div>
-            <button class="secondary-btn" id="quote-cancel" type="button">Cancel</button>
-            <button class="primary-btn" id="generate-quote-btn" type="submit">Save & generate PDF</button>
-          </div>
-        </footer>
-      </form>
-
-      <section class="quote-result" id="quote-result" hidden>
-        <div class="file-card">
-          <span class="file-icon">PDF</span>
-          <div><strong id="quote-file-name">Quote.pdf</strong><span id="quote-file-meta">Saved to Supabase</span></div>
-        </div>
-        <div class="result-actions">
-          <button class="secondary-btn" id="download-quote-btn" type="button">Download PDF</button>
-          <button class="primary-btn" id="send-quote-btn" type="button">Send to client</button>
-        </div>
-        <p>The PDF will be downloaded before your email app opens. Attach the downloaded file to the prepared email.</p>
-      </section>
-    </section>
-  </div>
 
   <div class="modal-backdrop" id="fleet-modal" hidden>
     <section class="quote-modal fleet-modal" role="dialog" aria-modal="true" aria-labelledby="fleet-modal-title">
@@ -268,7 +173,6 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
   <script type="module" src="/dashboard.js"></script>
 </body>
 </html>
