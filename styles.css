@@ -147,6 +147,7 @@ button, input, textarea { font: inherit; }
 .form-heading { margin: 3px 0 18px; padding-top: 7px; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--line); }
 .form-heading:first-child { padding-top: 0; border-top: 0; }
 .form-heading > span { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto; color: #fff; background: var(--lime); font-weight: 900; }
+.form-heading-plain { display: block; }
 .form-heading div { display: grid; gap: 2px; }
 .form-heading strong { font: 800 clamp(1.25rem,1vw + 1rem,1.75rem)/1 "Barlow Condensed"; text-transform: uppercase; }
 .form-heading small { color: var(--muted); font-size: .82rem; }
