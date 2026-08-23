@@ -557,6 +557,7 @@ function fillFromInquiry() {
   setQuoteField('destination', activeInquiry.delivery_city_state);
   const description = [activeInquiry.freight_type, activeInquiry.load_details].filter(Boolean).join('\n');
   setQuoteField('freight_description', description);
+  setQuoteField('notes', activeInquiry.additional_comment);
   const firstItem = lineItems.querySelector('.line-item');
   if (firstItem) {
     firstItem.querySelector('.line-description').value = `Freight transportation - ${activeInquiry.freight_type || 'General freight'}`;
