@@ -186,18 +186,73 @@
         <form class="quote-form reveal" id="demo-form">
           <div class="field-row">
             <label>NAME<input type="text" name="name" placeholder="Your name" maxlength="120" autocomplete="name" required></label>
-            <label>COMPANY<input type="text" name="company" placeholder="Company name" maxlength="160" autocomplete="organization"></label>
+            <label>COMPANY<input type="text" name="company" placeholder="Company name" maxlength="160" autocomplete="organization" required></label>
           </div>
           <div class="field-row">
             <label>EMAIL<input type="email" name="email" placeholder="you@company.com" maxlength="254" autocomplete="email" required></label>
-            <label>PHONE<input type="tel" name="phone" placeholder="(000) 000-0000" maxlength="50" autocomplete="tel"></label>
+            <label>FREIGHT TYPE
+              <select name="freight_type" required>
+                <option value="">Select freight type</option>
+                <option>General Freight</option>
+                <option>Dry Goods</option>
+                <option>Machinery & Equipment</option>
+                <option>Auto Parts</option>
+                <option>Building Materials</option>
+                <option>Retail Goods</option>
+                <option>Food & Beverage (Non-Perishable)</option>
+                <option>Other</option>
+              </select>
+            </label>
           </div>
           <div class="field-row">
-            <label>PICKUP CITY / STATE<input type="text" name="pickup_city_state" placeholder="Origin" maxlength="180"></label>
-            <label>DELIVERY CITY / STATE<input type="text" name="delivery_city_state" placeholder="Destination" maxlength="180"></label>
+            <label>FREIGHT WEIGHT<input type="text" name="freight_weight" placeholder="e.g. 18,000 lbs" maxlength="120" required></label>
+            <label>DIMENSIONS<input type="text" name="freight_dimensions" placeholder="L × W × H, pallets, or units" maxlength="240" required></label>
           </div>
-          <label>LOAD DETAILS<textarea name="load_details" rows="4" maxlength="4000" placeholder="Commodity, weight, dimensions, dates, special requirements..."></textarea></label>
-          <label class="hp-field" aria-hidden="true">WEBSITE<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+          <div class="field-row">
+            <label>ORIGIN
+              <select name="pickup_city_state" required>
+                <option value="">Select state / district</option>
+                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+                <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+                <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+                <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+                <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+                <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+                <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+                <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+                <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+                <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+                <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+                <option>Vermont</option><option>Virginia</option><option>Washington</option><option>Washington, D.C.</option>
+                <option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
+              </select>
+            </label>
+            <label>DESTINATION
+              <select name="delivery_city_state" required>
+                <option value="">Select state / district</option>
+                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+                <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+                <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+                <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+                <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+                <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+                <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+                <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+                <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+                <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+                <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+                <option>Vermont</option><option>Virginia</option><option>Washington</option><option>Washington, D.C.</option>
+                <option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
+              </select>
+            </label>
+          </div>
+          <label>WHAT ARE YOU SHIPPING?
+            <textarea name="load_details" rows="4" maxlength="4000" placeholder="Describe the commodity, packaging, quantity, handling needs, dates, and any special requirements..." required></textarea>
+          </label>
+          <label>ADDITIONAL COMMENT
+            <textarea name="additional_comment" rows="3" maxlength="4000" placeholder="Anything else our team should know?"></textarea>
+          </label>
+          <input type="text" name="fax_number" tabindex="-1" autocomplete="off" hidden aria-hidden="true">
           <button class="btn submit-btn" type="submit">Send Quote Request <span>→</span></button>
           <p class="form-status" role="status"></p>
         </form>
