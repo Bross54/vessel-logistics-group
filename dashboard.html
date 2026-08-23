@@ -34,8 +34,8 @@
         </div>
         <span class="section-label">SECURE ACCESS</span>
         <h2>Dashboard login</h2>
-        <p>Use your authorized Supabase account.</p>
-        <label>EMAIL<input type="email" name="email" autocomplete="username" required></label>
+        <p>Enter your private dashboard credentials.</p>
+        <label>USERNAME<input type="text" name="username" autocomplete="username" required></label>
         <label>PASSWORD<input type="password" name="password" autocomplete="current-password" required></label>
         <button class="primary-btn full" type="submit">Sign in <span>→</span></button>
         <p class="login-error" id="login-error" role="alert"></p>
@@ -58,6 +58,10 @@
     </header>
 
     <main class="dashboard">
+      <aside class="registration-alert" id="registration-alert" role="alert" hidden>
+        <div><span>REGISTRATION EXPIRED</span><strong id="registration-alert-text"></strong></div>
+        <button id="registration-alert-close" type="button" aria-label="Dismiss registration warning">×</button>
+      </aside>
       <section class="intro">
         <div>
           <span class="section-label">VESSEL OPERATIONS</span>
