@@ -32,10 +32,17 @@ const quoteForm = document.querySelector('#quote-form');
 const quoteResult = document.querySelector('#quote-result');
 const lineItems = document.querySelector('#line-items');
 const taxRateInput = document.querySelector('#tax-rate');
+const truckSelect = document.querySelector('#quote-trucks');
+const truckAllocations = document.querySelector('#truck-allocations');
+const fleetModal = document.querySelector('#fleet-modal');
+const fleetForm = document.querySelector('#fleet-form');
+const fleetList = document.querySelector('#fleet-list');
 
-const statusLabels = { new: 'New', contacted: 'Contacted', quoted: 'Quoted', closed: 'Closed' };
+const statusLabels = { new: 'New', contacted: 'Contacted', quoted: 'Quoted', confirmed: 'Confirmed', closed: 'Closed' };
 let quoteRequests = [];
 let sessions = [];
+let fleetTrucks = [];
+let freightQuotes = [];
 let toastTimer;
 let activeInquiry = null;
 let activeQuoteMeta = null;
@@ -95,6 +102,8 @@ document.querySelector('#logout-btn').addEventListener('click', async () => {
   await supabase.auth.signOut();
   quoteRequests = [];
   sessions = [];
+  fleetTrucks = [];
+  freightQuotes = [];
   showLogin();
 });
 
@@ -110,29 +119,34 @@ async function loadDashboard() {
   since.setHours(0, 0, 0, 0);
   since.setDate(since.getDate() - 29);
 
-  const [quotesResult, eventsResult] = await Promise.all([
+  const [quotesResult, eventsResult, fleetResult, freightQuotesResult] = await Promise.all([
     supabase
       .from('quote_requests')
-      .select('id,name,company,email,freight_type,freight_weight,freight_dimensions,pickup_city_state,delivery_city_state,load_details,additional_comment,status,created_at')
+      .select('id,name,company,email,phone,phone_e164,freight_type,freight_weight,freight_dimensions,total_length_in,total_width_in,total_height_in,total_weight_lb,package_groups,pickup_city_state,delivery_city_state,load_details,additional_comment,status,created_at')
       .order('created_at', { ascending: false }),
     supabase
       .from('page_events')
       .select('session_id,visitor_id,event_type,duration_seconds,occurred_at')
       .gte('occurred_at', since.toISOString())
-      .order('occurred_at', { ascending: true })
+      .order('occurred_at', { ascending: true }),
+    supabase.from('fleet_trucks').select('*').order('status').order('unit_number'),
+    supabase.from('freight_quotes').select('id,quote_request_id,quote_number,version,truck_ids,created_at').order('created_at', { ascending: false })
   ]);
 
-  if (quotesResult.error || eventsResult.error) {
-    console.error('Dashboard load failed:', quotesResult.error || eventsResult.error);
+  if (quotesResult.error || eventsResult.error || fleetResult.error || freightQuotesResult.error) {
+    console.error('Dashboard load failed:', quotesResult.error || eventsResult.error || fleetResult.error || freightQuotesResult.error);
     showToast('Could not load dashboard data.', true);
     return;
   }
 
   quoteRequests = quotesResult.data || [];
   sessions = aggregateSessions(eventsResult.data || []);
+  fleetTrucks = fleetResult.data || [];
+  freightQuotes = freightQuotesResult.data || [];
   renderStatistics();
   renderAnalytics();
   renderRequests();
+  renderFleet();
 }
 
 function aggregateSessions(events) {
@@ -278,6 +292,11 @@ function createMessageBlock(label, value) {
   return block;
 }
 
+function packageGroupsText(groups) {
+  if (!Array.isArray(groups) || !groups.length) return 'No structured package data (legacy inquiry).';
+  return groups.map((group, index) => `${index + 1}. ${group.quantity} × ${group.packaging_type} — ${group.description}; ${group.weight_each_lb} lb each; ${group.length_each_in} × ${group.width_each_in} × ${group.height_each_in} in each`).join('\n');
+}
+
 function createRequestItem(request) {
   const item = document.createElement('details');
   const safeStatus = Object.hasOwn(statusLabels, request.status) ? request.status : 'new';
@@ -298,6 +317,7 @@ function createRequestItem(request) {
   infoGrid.className = 'info-grid';
   infoGrid.append(
     createInfoItem('EMAIL', request.email),
+    createInfoItem('PHONE', request.phone || request.phone_e164),
     createInfoItem('WEIGHT', request.freight_weight),
     createInfoItem('DIMENSIONS', request.freight_dimensions),
     createInfoItem('RECEIVED', new Date(request.created_at).toLocaleString('en-US')),
@@ -311,6 +331,7 @@ function createRequestItem(request) {
   messages.className = 'message-grid';
   messages.append(
     createMessageBlock('FREIGHT DETAILS', request.load_details || 'No freight details provided.'),
+    createMessageBlock('PACKAGING', packageGroupsText(request.package_groups)),
     createMessageBlock('ADDITIONAL COMMENT', request.additional_comment || 'No additional comment.')
   );
 
@@ -325,6 +346,7 @@ function createRequestItem(request) {
     option.value = value;
     option.textContent = label;
     option.selected = request.status === value;
+    option.disabled = request.status === 'confirmed' && !['confirmed', 'closed'].includes(value);
     select.append(option);
   });
   select.addEventListener('change', () => updateStatus(request, select.value, select));
@@ -355,15 +377,24 @@ function createRequestItem(request) {
     window.setTimeout(renderRequests, 250);
   });
 
+  const call = document.createElement('button');
+  call.type = 'button';
+  call.className = 'call-btn';
+  call.textContent = 'Call';
+  call.disabled = !(request.phone_e164 || request.phone);
+  call.addEventListener('click', () => {
+    window.location.href = `tel:${request.phone_e164 || String(request.phone).replace(/[^+\d]/g, '')}`;
+  });
+
   const makeQuote = document.createElement('button');
   makeQuote.type = 'button';
   makeQuote.className = 'make-quote-btn';
   makeQuote.textContent = 'Make a quote';
-  makeQuote.disabled = request.status !== 'quoted';
-  makeQuote.title = request.status === 'quoted' ? 'Create a prepayment quote' : 'Set status to Quoted to enable';
+  makeQuote.disabled = !['quoted', 'confirmed'].includes(request.status);
+  makeQuote.title = ['quoted', 'confirmed'].includes(request.status) ? 'Create a prepayment quote' : 'Set status to Quoted to enable';
   makeQuote.addEventListener('click', () => openQuoteModal(request));
 
-  actionButtons.append(contact, makeQuote);
+  actionButtons.append(contact, call, makeQuote);
   actions.append(statusControl, actionButtons);
   details.append(infoGrid, messages, actions);
   item.append(summary, details);
@@ -374,17 +405,30 @@ async function updateStatus(request, nextStatus, select = null, rerender = true)
   const previous = request.status;
   if (previous === nextStatus) return true;
   if (select) select.disabled = true;
-  const { error } = await supabase.from('quote_requests').update({ status: nextStatus }).eq('id', request.id);
+  let error = null;
+  if (nextStatus === 'confirmed') {
+    const latestQuote = freightQuotes.find(quote => quote.quote_request_id === request.id && Array.isArray(quote.truck_ids) && quote.truck_ids.length);
+    if (!latestQuote) {
+      error = { message: 'Create and save a quote with at least one truck first.' };
+    } else {
+      ({ error } = await supabase.rpc('confirm_freight_inquiry', { p_quote_request_id: request.id, p_freight_quote_id: latestQuote.id }));
+    }
+  } else if (nextStatus === 'closed') {
+    ({ error } = await supabase.rpc('close_freight_inquiry', { p_quote_request_id: request.id }));
+  } else {
+    ({ error } = await supabase.from('quote_requests').update({ status: nextStatus }).eq('id', request.id));
+  }
   if (select) select.disabled = false;
 
   if (error) {
     if (select) select.value = previous;
     console.error('Status update failed:', error);
-    showToast('Status update failed.', true);
+    showToast(error.message || 'Status update failed.', true);
     return false;
   }
 
   request.status = nextStatus;
+  if (['confirmed', 'closed'].includes(nextStatus)) await loadDashboard();
   renderStatistics();
   if (rerender) renderRequests();
   showToast('Status updated.');
@@ -495,6 +539,151 @@ function calculateQuoteTotals() {
   return { items, subtotal, taxRate, taxAmount, total };
 }
 
+function registrationState(truck) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(`${truck.registration_expires_on}T12:00:00`);
+  const days = Math.ceil((expiry - today) / 86400000);
+  if (days < 0) return { key: 'expired', label: `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`, days };
+  if (days <= 30) return { key: 'warning', label: `Expires in ${days} day${days === 1 ? '' : 's'}`, days };
+  return { key: 'valid', label: `Valid through ${expiry.toLocaleDateString('en-US')}`, days };
+}
+
+function dimensionsFit(itemDimensions, truckDimensions) {
+  const item = itemDimensions.map(Number).sort((a, b) => a - b);
+  const truck = truckDimensions.map(Number).sort((a, b) => a - b);
+  return item.every((value, index) => value <= truck[index]);
+}
+
+function truckMatchesInquiry(truck, inquiry) {
+  if (truck.status !== 'available' || registrationState(truck).key === 'expired') return false;
+  const groups = Array.isArray(inquiry.package_groups) ? inquiry.package_groups : [];
+  if (!groups.length) return true;
+  const truckDims = [truck.cargo_length_in, truck.cargo_width_in, truck.cargo_height_in];
+  return groups.every(group => dimensionsFit(
+    [group.length_each_in, group.width_each_in, group.height_each_in],
+    truckDims
+  )) && groups.some(group => Number(group.weight_each_lb) <= Number(truck.max_payload_lb));
+}
+
+function renderTruckOptions() {
+  truckSelect.replaceChildren();
+  const matches = fleetTrucks.filter(truck => truckMatchesInquiry(truck, activeInquiry || {}));
+  matches.forEach(truck => {
+    const option = document.createElement('option');
+    option.value = truck.id;
+    option.textContent = `${truck.unit_number} · ${truck.name} · ${truck.truck_type} · ${Number(truck.max_payload_lb).toLocaleString()} lb`;
+    truckSelect.append(option);
+  });
+  if (!matches.length) {
+    const option = document.createElement('option');
+    option.disabled = true;
+    option.textContent = 'No matching available trucks';
+    truckSelect.append(option);
+  }
+  renderTruckAllocations();
+}
+
+function renderPackagePreview() {
+  const preview = document.querySelector('#quote-package-preview');
+  preview.replaceChildren();
+  const groups = Array.isArray(activeInquiry?.package_groups) ? activeInquiry.package_groups : [];
+  groups.forEach(group => {
+    const row = document.createElement('div');
+    row.className = 'package-preview-item';
+    row.append(
+      createTextElement('strong', '', `${group.quantity} × ${group.packaging_type}`),
+      createTextElement('span', '', group.description),
+      createTextElement('span', '', `${group.weight_each_lb} lb each`),
+      createTextElement('span', '', `${group.length_each_in} × ${group.width_each_in} × ${group.height_each_in} in`)
+    );
+    preview.append(row);
+  });
+}
+
+function renderTruckAllocations() {
+  const selectedIds = [...truckSelect.selectedOptions].map(option => option.value);
+  const panel = document.querySelector('#truck-allocation-panel');
+  const groups = Array.isArray(activeInquiry?.package_groups) ? activeInquiry.package_groups : [];
+  panel.hidden = !selectedIds.length || !groups.length;
+  truckAllocations.replaceChildren();
+  selectedIds.forEach(truckId => {
+    const truck = fleetTrucks.find(item => item.id === truckId);
+    if (!truck) return;
+    const card = document.createElement('div');
+    card.className = 'truck-allocation';
+    card.dataset.truckId = truck.id;
+    card.append(createTextElement('strong', '', `${truck.unit_number} · ${truck.name}`));
+    const grid = document.createElement('div');
+    grid.className = 'allocation-grid';
+    groups.forEach((group, index) => {
+      const label = document.createElement('label');
+      label.textContent = `${group.packaging_type} · ${group.description}`;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'allocation-quantity';
+      input.dataset.groupIndex = String(index);
+      input.min = '0';
+      input.max = String(group.quantity);
+      input.step = '1';
+      input.value = selectedIds.length === 1 ? String(group.quantity) : '0';
+      input.required = true;
+      input.addEventListener('input', updateAllocationCapacity);
+      label.append(input);
+      grid.append(label);
+    });
+    const capacity = createTextElement('div', 'allocation-capacity', '0 lb assigned');
+    card.append(grid, capacity);
+    truckAllocations.append(card);
+  });
+  updateAllocationCapacity();
+}
+
+function updateAllocationCapacity() {
+  const groups = Array.isArray(activeInquiry?.package_groups) ? activeInquiry.package_groups : [];
+  truckAllocations.querySelectorAll('.truck-allocation').forEach(card => {
+    const truck = fleetTrucks.find(item => item.id === card.dataset.truckId);
+    const weight = [...card.querySelectorAll('.allocation-quantity')].reduce((sum, input) => {
+      const group = groups[Number(input.dataset.groupIndex)];
+      return sum + (Number(input.value) || 0) * (Number(group?.weight_each_lb) || 0);
+    }, 0);
+    const capacity = card.querySelector('.allocation-capacity');
+    capacity.textContent = `${weight.toLocaleString('en-US')} / ${Number(truck?.max_payload_lb || 0).toLocaleString('en-US')} lb assigned`;
+    capacity.classList.toggle('over-capacity', weight > Number(truck?.max_payload_lb || 0));
+  });
+}
+
+function collectTruckAllocations() {
+  const groups = Array.isArray(activeInquiry?.package_groups) ? activeInquiry.package_groups : [];
+  const selectedTrucks = [...truckSelect.selectedOptions].map(option => fleetTrucks.find(truck => truck.id === option.value)).filter(Boolean);
+  if (!selectedTrucks.length) throw new Error('Select at least one matching truck.');
+  if (selectedTrucks.length === 1 && groups.length) {
+    const truck = selectedTrucks[0];
+    const totalDims = [activeInquiry.total_length_in, activeInquiry.total_width_in, activeInquiry.total_height_in];
+    if (!dimensionsFit(totalDims, [truck.cargo_length_in, truck.cargo_width_in, truck.cargo_height_in]) || Number(activeInquiry.total_weight_lb) > Number(truck.max_payload_lb)) {
+      throw new Error('The entire shipment does not fit one truck. Select multiple trucks and split the packages.');
+    }
+  }
+  const allocatedByGroup = groups.map(() => 0);
+  const allocations = [...truckAllocations.querySelectorAll('.truck-allocation')].map(card => {
+    const truck = selectedTrucks.find(item => item.id === card.dataset.truckId);
+    let allocatedWeightLb = 0;
+    const packages = [...card.querySelectorAll('.allocation-quantity')].map(input => {
+      const groupIndex = Number(input.dataset.groupIndex);
+      const quantity = Number(input.value) || 0;
+      allocatedByGroup[groupIndex] += quantity;
+      allocatedWeightLb += quantity * Number(groups[groupIndex]?.weight_each_lb || 0);
+      return { group_id: groups[groupIndex]?.id || `group-${groupIndex + 1}`, group_index: groupIndex, packaging_type: groups[groupIndex]?.packaging_type, description: groups[groupIndex]?.description, quantity };
+    }).filter(item => item.quantity > 0);
+    if (allocatedWeightLb > Number(truck.max_payload_lb)) throw new Error(`${truck.unit_number} exceeds its maximum payload.`);
+    return { truck_id: truck.id, unit_number: truck.unit_number, name: truck.name, truck_type: truck.truck_type, plate_number: truck.plate_number, registration_state: truck.registration_state, registration_expires_on: truck.registration_expires_on, max_payload_lb: Number(truck.max_payload_lb), cargo_dimensions_in: [Number(truck.cargo_length_in), Number(truck.cargo_width_in), Number(truck.cargo_height_in)], allocated_weight_lb: allocatedWeightLb, packages };
+  });
+  groups.forEach((group, index) => {
+    if (allocatedByGroup[index] !== Number(group.quantity)) throw new Error(`Allocate all ${group.quantity} ${group.packaging_type} package(s).`);
+  });
+  return { selectedTrucks, allocations };
+}
+
 function resetQuoteModal() {
   quoteForm.reset();
   quoteForm.hidden = false;
@@ -504,16 +693,20 @@ function resetQuoteModal() {
   taxRateInput.value = '0';
   calculateQuoteTotals();
   generatedQuote = null;
+  truckSelect.replaceChildren();
+  truckAllocations.replaceChildren();
 }
 
 async function openQuoteModal(request) {
-  if (request.status !== 'quoted') return;
+  if (!['quoted', 'confirmed'].includes(request.status)) return;
   activeInquiry = request;
   activeQuoteMeta = null;
   resetQuoteModal();
   quoteModal.hidden = false;
   document.body.classList.add('modal-open');
   document.querySelector('#quote-reference').textContent = 'Preparing reference...';
+  renderTruckOptions();
+  renderPackagePreview();
 
   const { data, error } = await supabase
     .from('freight_quotes')
@@ -551,6 +744,7 @@ function fillFromInquiry() {
   setQuoteField('client_name', activeInquiry.name);
   setQuoteField('client_company', activeInquiry.company);
   setQuoteField('client_email', activeInquiry.email);
+  setQuoteField('client_phone', activeInquiry.phone || activeInquiry.phone_e164);
   setQuoteField('freight_weight', activeInquiry.freight_weight);
   setQuoteField('freight_dimensions', activeInquiry.freight_dimensions);
   setQuoteField('origin', activeInquiry.pickup_city_state);
@@ -656,7 +850,7 @@ function buildQuotePdf(quote) {
   drawPageHeader();
   y = 51;
   drawAddressBox(left, 86, 'FROM', [DEMO_COMPANY_DETAILS.name, DEMO_COMPANY_DETAILS.address, `${DEMO_COMPANY_DETAILS.phone}  |  ${DEMO_COMPANY_DETAILS.email}`]);
-  drawAddressBox(108, 86, 'BILL TO', [quote.client_company, quote.client_name, quote.client_email]);
+  drawAddressBox(108, 86, 'BILL TO', [quote.client_company, quote.client_name, `${quote.client_email}  |  ${quote.client_phone || 'Phone not provided'}`]);
   y += 43;
 
   y = sectionTitle('Shipment details', y);
@@ -695,6 +889,41 @@ function buildQuotePdf(quote) {
     doc.text(chunk, left + 4, y + 2);
     y += chunk.length * 4 + 10;
   }
+
+  const drawDetailRows = (title, rows) => {
+    if (!rows.length) return;
+    if (y + 18 > 260) y = addContinuationPage();
+    y = sectionTitle(title, y);
+    rows.forEach((row, index) => {
+      const lines = doc.splitTextToSize(pdfSafe(row), right - left - 9);
+      const height = Math.max(8, lines.length * 4 + 4);
+      if (y + height > 265) {
+        y = addContinuationPage();
+        y = sectionTitle(`${title} continued`, y);
+      }
+      if (index % 2 === 0) {
+        doc.setFillColor(248, 248, 246);
+        doc.rect(left, y, right - left, height, 'F');
+      }
+      doc.setTextColor(35, 45, 52);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(lines, left + 4, y + 5.5);
+      y += height;
+    });
+    y += 8;
+  };
+
+  const packageRows = (Array.isArray(quote.package_groups) ? quote.package_groups : []).map((group, index) =>
+    `${index + 1}. ${group.quantity} x ${group.packaging_type} | ${group.description} | ${group.weight_each_lb} lb each | ${group.length_each_in} x ${group.width_each_in} x ${group.height_each_in} in each`
+  );
+  drawDetailRows('Package groups', packageRows);
+
+  const allocationRows = (Array.isArray(quote.truck_allocations) ? quote.truck_allocations : []).map(allocation => {
+    const packages = (allocation.packages || []).map(item => `${item.quantity} x ${item.packaging_type} (${item.description})`).join('; ');
+    return `${allocation.unit_number} - ${allocation.name} | ${allocation.truck_type} | ${Number(allocation.allocated_weight_lb).toLocaleString('en-US')} lb | ${packages}`;
+  });
+  drawDetailRows('Truck allocation', allocationRows);
 
   const drawPricingHeader = currentY => {
     doc.setFillColor(...navy);
@@ -854,7 +1083,148 @@ function sendGeneratedQuote() {
   window.location.href = `mailto:${encodeURIComponent(quote.client_email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+function resetFleetForm() {
+  fleetForm.reset();
+  fleetForm.elements.namedItem('id').value = '';
+  fleetForm.elements.namedItem('status').value = 'available';
+  document.querySelector('#fleet-form-label').textContent = 'NEW TRUCK';
+  document.querySelector('#fleet-form-title').textContent = 'Add a truck';
+  document.querySelector('#fleet-save').textContent = 'Save truck';
+}
+
+function editFleetTruck(truck) {
+  Object.entries(truck).forEach(([key, value]) => {
+    const field = fleetForm.elements.namedItem(key);
+    if (field) field.value = value ?? '';
+  });
+  document.querySelector('#fleet-form-label').textContent = truck.unit_number;
+  document.querySelector('#fleet-form-title').textContent = 'Edit truck';
+  document.querySelector('#fleet-save').textContent = 'Update truck';
+  fleetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function setFleetStatus(truck, status) {
+  const { data, error } = await supabase.from('fleet_trucks').update({ status, updated_at: new Date().toISOString() }).eq('id', truck.id).select('*').single();
+  if (error) {
+    showToast(error.message || 'Could not update the truck.', true);
+    return;
+  }
+  const index = fleetTrucks.findIndex(item => item.id === truck.id);
+  if (index >= 0) fleetTrucks[index] = data;
+  renderFleet();
+  showToast(status === 'archived' ? 'Truck archived.' : status === 'available' && truck.status === 'archived' ? 'Truck restored.' : 'Truck status updated.');
+}
+
+function renderFleet() {
+  if (!fleetList) return;
+  fleetList.replaceChildren();
+  document.querySelector('#fleet-count').textContent = `${fleetTrucks.length} truck${fleetTrucks.length === 1 ? '' : 's'}`;
+  const statusOrder = { available: 0, assigned: 1, maintenance: 2, inactive: 3, archived: 4 };
+  [...fleetTrucks].sort((a, b) => (statusOrder[a.status] - statusOrder[b.status]) || a.unit_number.localeCompare(b.unit_number)).forEach(truck => {
+    const registration = registrationState(truck);
+    const card = document.createElement('article');
+    card.className = `fleet-card status-${truck.status} registration-${registration.key}`;
+    const head = document.createElement('div');
+    head.className = 'fleet-card-head';
+    const title = document.createElement('div');
+    title.append(createTextElement('h4', '', `${truck.unit_number} · ${truck.name}`), createTextElement('span', '', `${truck.truck_type} · ${truck.plate_number} (${truck.registration_state})`));
+    head.append(title, createTextElement('strong', '', statusLabels[truck.status] || truck.status.toUpperCase()));
+    const meta = document.createElement('div');
+    meta.className = 'fleet-card-meta';
+    meta.append(
+      createTextElement('span', '', `Payload: ${Number(truck.max_payload_lb).toLocaleString()} lb`),
+      createTextElement('span', '', `Cargo: ${truck.cargo_length_in} × ${truck.cargo_width_in} × ${truck.cargo_height_in} in`),
+      createTextElement('span', '', registration.label)
+    );
+    const actions = document.createElement('div');
+    actions.className = 'fleet-card-actions';
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.textContent = 'Edit';
+    edit.addEventListener('click', () => editFleetTruck(truck));
+    actions.append(edit);
+    if (truck.status === 'archived') {
+      const restore = document.createElement('button');
+      restore.type = 'button';
+      restore.textContent = 'Restore';
+      restore.addEventListener('click', () => setFleetStatus(truck, 'available'));
+      actions.append(restore);
+    } else if (truck.status === 'inactive') {
+      const archive = document.createElement('button');
+      archive.type = 'button';
+      archive.textContent = 'Archive';
+      archive.addEventListener('click', () => setFleetStatus(truck, 'archived'));
+      actions.append(archive);
+    } else {
+      const disable = document.createElement('button');
+      disable.type = 'button';
+      disable.textContent = 'Disable';
+      disable.addEventListener('click', () => setFleetStatus(truck, 'inactive'));
+      actions.append(disable);
+    }
+    card.append(head, meta, actions);
+    fleetList.append(card);
+  });
+}
+
+function closeFleetModal() {
+  fleetModal.hidden = true;
+  document.body.classList.remove('modal-open');
+  resetFleetForm();
+}
+
+document.querySelector('#fleet-btn').addEventListener('click', () => {
+  resetFleetForm();
+  renderFleet();
+  fleetModal.hidden = false;
+  document.body.classList.add('modal-open');
+});
+document.querySelector('#fleet-modal-close').addEventListener('click', closeFleetModal);
+document.querySelector('#fleet-form-reset').addEventListener('click', resetFleetForm);
+fleetModal.addEventListener('click', event => {
+  if (event.target === fleetModal) closeFleetModal();
+});
+fleetForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const formData = new FormData(fleetForm);
+  const id = String(formData.get('id') || '');
+  const payload = {
+    name: String(formData.get('name') || '').trim(),
+    truck_type: String(formData.get('truck_type') || '').trim(),
+    unit_number: String(formData.get('unit_number') || '').trim().toUpperCase(),
+    plate_number: String(formData.get('plate_number') || '').trim().toUpperCase(),
+    registration_state: String(formData.get('registration_state') || '').trim().toUpperCase(),
+    registration_expires_on: String(formData.get('registration_expires_on') || ''),
+    status: String(formData.get('status') || 'available'),
+    max_payload_lb: Number(formData.get('max_payload_lb')),
+    cargo_length_in: Number(formData.get('cargo_length_in')),
+    cargo_width_in: Number(formData.get('cargo_width_in')),
+    cargo_height_in: Number(formData.get('cargo_height_in')),
+    notes: String(formData.get('notes') || '').trim(),
+    updated_at: new Date().toISOString()
+  };
+  const button = document.querySelector('#fleet-save');
+  button.disabled = true;
+  button.textContent = id ? 'Updating...' : 'Saving...';
+  const result = id
+    ? await supabase.from('fleet_trucks').update(payload).eq('id', id).select('*').single()
+    : await supabase.from('fleet_trucks').insert(payload).select('*').single();
+  button.disabled = false;
+  if (result.error) {
+    button.textContent = id ? 'Update truck' : 'Save truck';
+    showToast(result.error.message || 'Could not save the truck.', true);
+    return;
+  }
+  const existingIndex = fleetTrucks.findIndex(truck => truck.id === result.data.id);
+  if (existingIndex >= 0) fleetTrucks[existingIndex] = result.data;
+  else fleetTrucks.push(result.data);
+  resetFleetForm();
+  renderFleet();
+  showToast(id ? 'Truck updated.' : 'Truck added.');
+});
+
 document.querySelector('#add-line-item').addEventListener('click', () => createLineItem());
+truckSelect.addEventListener('change', renderTruckAllocations);
 taxRateInput.addEventListener('input', calculateQuoteTotals);
 document.querySelector('#fill-inquiry-btn').addEventListener('click', fillFromInquiry);
 document.querySelector('#quote-modal-close').addEventListener('click', closeQuoteModal);
@@ -866,6 +1236,7 @@ quoteModal.addEventListener('click', event => {
 });
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && !quoteModal.hidden) closeQuoteModal();
+  if (event.key === 'Escape' && !fleetModal.hidden) closeFleetModal();
 });
 
 quoteForm.addEventListener('submit', async event => {
@@ -882,6 +1253,14 @@ quoteForm.addEventListener('submit', async event => {
     return;
   }
 
+  let truckSelection;
+  try {
+    truckSelection = collectTruckAllocations();
+  } catch (allocationError) {
+    showToast(allocationError.message, true);
+    return;
+  }
+
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) {
     showToast('Your session expired. Sign in again.', true);
@@ -893,13 +1272,21 @@ quoteForm.addEventListener('submit', async event => {
     quote_request_id: activeInquiry.id,
     quote_number: activeQuoteMeta.quoteNumber,
     version: activeQuoteMeta.version,
-    truck: String(formData.get('truck') || '').trim(),
+    truck: truckSelection.selectedTrucks.map(truck => `${truck.unit_number} ${truck.truck_type}`).join(', '),
+    truck_ids: truckSelection.selectedTrucks.map(truck => truck.id),
+    truck_allocations: truckSelection.allocations,
+    package_groups: Array.isArray(activeInquiry.package_groups) ? activeInquiry.package_groups : [],
+    total_length_in: activeInquiry.total_length_in,
+    total_width_in: activeInquiry.total_width_in,
+    total_height_in: activeInquiry.total_height_in,
+    total_weight_lb: activeInquiry.total_weight_lb,
     freight_dimensions: String(formData.get('freight_dimensions') || '').trim(),
     freight_weight: String(formData.get('freight_weight') || '').trim(),
     freight_description: String(formData.get('freight_description') || '').trim(),
     client_name: String(formData.get('client_name') || '').trim(),
     client_company: String(formData.get('client_company') || '').trim(),
     client_email: String(formData.get('client_email') || '').trim(),
+    client_phone: String(formData.get('client_phone') || '').trim(),
     origin: String(formData.get('origin') || '').trim(),
     destination: String(formData.get('destination') || '').trim(),
     line_items: totals.items,
@@ -937,6 +1324,7 @@ quoteForm.addEventListener('submit', async event => {
     const pdf = buildQuotePdf(data);
     const fileName = `${safeFilePart(data.client_company)}-Quote-${new Date(data.created_at).toISOString().slice(0, 10)}.pdf`;
     generatedQuote = { quote: data, pdf, blob: pdf.output('blob'), fileName };
+    freightQuotes.unshift({ id: data.id, quote_request_id: data.quote_request_id, quote_number: data.quote_number, version: data.version, truck_ids: data.truck_ids, created_at: data.created_at });
     document.querySelector('#quote-file-name').textContent = fileName;
     document.querySelector('#quote-file-meta').textContent = `${data.quote_number} · Version ${data.version} · Saved to Supabase`;
     quoteForm.hidden = true;
