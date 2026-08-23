@@ -41,7 +41,7 @@ form?.addEventListener('submit', async event => {
   event.preventDefault();
 
   const formData = new FormData(form);
-  if (formData.get('website')) {
+  if (formData.get('fax_number')) {
     status.textContent = 'Thank you. Your quote request has been received.';
     form.reset();
     return;
@@ -52,12 +52,15 @@ form?.addEventListener('submit', async event => {
   const optionalValue = key => String(formData.get(key) || '').trim() || null;
   const payload = {
     name: String(formData.get('name') || '').trim(),
-    company: optionalValue('company'),
+    company: String(formData.get('company') || '').trim(),
     email: String(formData.get('email') || '').trim(),
-    phone: optionalValue('phone'),
-    pickup_city_state: optionalValue('pickup_city_state'),
-    delivery_city_state: optionalValue('delivery_city_state'),
-    load_details: optionalValue('load_details'),
+    freight_type: String(formData.get('freight_type') || '').trim(),
+    freight_weight: String(formData.get('freight_weight') || '').trim(),
+    freight_dimensions: String(formData.get('freight_dimensions') || '').trim(),
+    pickup_city_state: String(formData.get('pickup_city_state') || '').trim(),
+    delivery_city_state: String(formData.get('delivery_city_state') || '').trim(),
+    load_details: String(formData.get('load_details') || '').trim(),
+    additional_comment: optionalValue('additional_comment'),
     source_page: 'vessel-logistics-website'
   };
 
@@ -91,3 +94,57 @@ form?.addEventListener('submit', async event => {
 });
 
 document.querySelector('#year').textContent = new Date().getFullYear();
+
+function getOrCreateVisitorId() {
+  const storageKey = 'vessel_visitor_id';
+  const existing = localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const created = crypto.randomUUID();
+  localStorage.setItem(storageKey, created);
+  return created;
+}
+
+function startHomepageAnalytics() {
+  if (!['/', '/index.html'].includes(window.location.pathname)) return;
+
+  const visitorId = getOrCreateVisitorId();
+  const sessionId = crypto.randomUUID();
+  const startedAt = Date.now();
+  let lastDurationSent = -1;
+
+  const sendEvent = (eventType, keepalive = false) => {
+    const durationSeconds = Math.min(43200, Math.max(0, Math.round((Date.now() - startedAt) / 1000)));
+    if (eventType === 'heartbeat' && durationSeconds === lastDurationSent) return;
+    lastDurationSent = durationSeconds;
+
+    fetch(`${SUPABASE_URL}/rest/v1/page_events`, {
+      method: 'POST',
+      keepalive,
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        visitor_id: visitorId,
+        event_type: eventType,
+        duration_seconds: durationSeconds,
+        page_path: window.location.pathname
+      })
+    }).catch(() => {});
+  };
+
+  sendEvent('session_start');
+  const heartbeat = window.setInterval(() => {
+    if (document.visibilityState === 'visible') sendEvent('heartbeat');
+  }, 30000);
+
+  window.addEventListener('pagehide', () => {
+    window.clearInterval(heartbeat);
+    sendEvent('session_end', true);
+  }, { once: true });
+}
+
+startHomepageAnalytics();
