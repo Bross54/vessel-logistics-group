@@ -185,18 +185,19 @@
 
         <form class="quote-form reveal" id="demo-form">
           <div class="field-row">
-            <label>NAME<input type="text" placeholder="Your name" required></label>
-            <label>COMPANY<input type="text" placeholder="Company name"></label>
+            <label>NAME<input type="text" name="name" placeholder="Your name" maxlength="120" autocomplete="name" required></label>
+            <label>COMPANY<input type="text" name="company" placeholder="Company name" maxlength="160" autocomplete="organization"></label>
           </div>
           <div class="field-row">
-            <label>EMAIL<input type="email" placeholder="you@company.com" required></label>
-            <label>PHONE<input type="tel" placeholder="(000) 000-0000"></label>
+            <label>EMAIL<input type="email" name="email" placeholder="you@company.com" maxlength="254" autocomplete="email" required></label>
+            <label>PHONE<input type="tel" name="phone" placeholder="(000) 000-0000" maxlength="50" autocomplete="tel"></label>
           </div>
           <div class="field-row">
-            <label>PICKUP CITY / STATE<input type="text" placeholder="Origin"></label>
-            <label>DELIVERY CITY / STATE<input type="text" placeholder="Destination"></label>
+            <label>PICKUP CITY / STATE<input type="text" name="pickup_city_state" placeholder="Origin" maxlength="180"></label>
+            <label>DELIVERY CITY / STATE<input type="text" name="delivery_city_state" placeholder="Destination" maxlength="180"></label>
           </div>
-          <label>LOAD DETAILS<textarea rows="4" placeholder="Commodity, weight, dimensions, dates, special requirements..."></textarea></label>
+          <label>LOAD DETAILS<textarea name="load_details" rows="4" maxlength="4000" placeholder="Commodity, weight, dimensions, dates, special requirements..."></textarea></label>
+          <label class="hp-field" aria-hidden="true">WEBSITE<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
           <button class="btn submit-btn" type="submit">Send Quote Request <span>→</span></button>
           <p class="form-status" role="status"></p>
         </form>
