@@ -1,10 +1,25 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0/+esm';
+const DASHBOARD_API_URL = 'https://evdmcrrzuqfotlmtpxjs.supabase.co/functions/v1/vessel-dashboard-api';
+const DASHBOARD_TOKEN_KEY = 'vessel_dashboard_session';
+let dashboardToken = localStorage.getItem(DASHBOARD_TOKEN_KEY) || '';
 
-const SUPABASE_URL = 'https://evdmcrrzuqfotlmtpxjs.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Ci1j_1o0-B_yNtvnwqcHgQ_7uUBdAet';
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-});
+async function apiRequest(action, payload = {}, authenticated = true) {
+  const response = await fetch(DASHBOARD_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authenticated && dashboardToken ? { Authorization: `Bearer ${dashboardToken}` } : {})
+    },
+    body: JSON.stringify({ action, payload })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (response.status === 401 && authenticated) {
+    dashboardToken = '';
+    localStorage.removeItem(DASHBOARD_TOKEN_KEY);
+    showLogin();
+  }
+  if (!response.ok) throw new Error(result.error || 'Request failed.');
+  return result;
+}
 
 const DEMO_COMPANY_DETAILS = Object.freeze({
   name: 'Vessel Logistics Group LLC',
@@ -56,22 +71,46 @@ function showToast(message, error = false) {
   toastTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 
+function showRegistrationWarnings(expiredTrucks) {
+  const alert = document.querySelector('#registration-alert');
+  const message = document.querySelector('#registration-alert-text');
+  const unseen = expiredTrucks.filter(truck => {
+    const key = `vessel_registration_warning_${truck.id}_${truck.registration_expires_on}`;
+    return !localStorage.getItem(key);
+  });
+  if (!unseen.length) {
+    alert.hidden = true;
+    return;
+  }
+  message.textContent = unseen.map(truck => `${truck.unit_number} · ${truck.name} (${new Date(`${truck.registration_expires_on}T12:00:00`).toLocaleDateString('en-US')})`).join('; ');
+  unseen.forEach(truck => localStorage.setItem(`vessel_registration_warning_${truck.id}_${truck.registration_expires_on}`, 'shown'));
+  alert.hidden = false;
+}
+
+document.querySelector('#registration-alert-close').addEventListener('click', () => {
+  document.querySelector('#registration-alert').hidden = true;
+});
+
 function showLogin() {
   appView.hidden = true;
   loginView.hidden = false;
 }
 
-async function showDashboard(user) {
+async function showDashboard(username) {
   loginView.hidden = true;
   appView.hidden = false;
-  document.querySelector('#user-email').textContent = user.email || 'Authorized user';
+  document.querySelector('#user-email').textContent = username || 'Authorized user';
   await loadDashboard();
 }
 
 async function initialize() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return showLogin();
-  await showDashboard(data.user);
+  if (!dashboardToken) return showLogin();
+  try {
+    const session = await apiRequest('session');
+    await showDashboard(session.username);
+  } catch {
+    showLogin();
+  }
 }
 
 loginForm.addEventListener('submit', async event => {
@@ -82,24 +121,26 @@ loginForm.addEventListener('submit', async event => {
   button.textContent = 'Signing in...';
   loginError.textContent = '';
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: String(formData.get('email') || '').trim(),
-    password: String(formData.get('password') || '')
-  });
-
-  button.disabled = false;
-  button.innerHTML = 'Sign in <span>→</span>';
-  if (error || !data.user) {
-    loginError.textContent = 'Invalid email or password.';
-    return;
+  try {
+    const data = await apiRequest('login', {
+      username: String(formData.get('username') || '').trim(),
+      password: String(formData.get('password') || '')
+    }, false);
+    dashboardToken = data.token;
+    localStorage.setItem(DASHBOARD_TOKEN_KEY, dashboardToken);
+    loginForm.reset();
+    await showDashboard(data.username);
+  } catch (error) {
+    loginError.textContent = error.message || 'Invalid username or password.';
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'Sign in <span>→</span>';
   }
-
-  loginForm.reset();
-  await showDashboard(data.user);
 });
 
-document.querySelector('#logout-btn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+document.querySelector('#logout-btn').addEventListener('click', () => {
+  dashboardToken = '';
+  localStorage.removeItem(DASHBOARD_TOKEN_KEY);
   quoteRequests = [];
   sessions = [];
   fleetTrucks = [];
@@ -115,34 +156,20 @@ document.querySelector('#refresh-btn').addEventListener('click', async event => 
 });
 
 async function loadDashboard() {
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - 29);
-
-  const [quotesResult, eventsResult, fleetResult, freightQuotesResult] = await Promise.all([
-    supabase
-      .from('quote_requests')
-      .select('id,name,company,email,phone,phone_e164,freight_type,freight_weight,freight_dimensions,total_length_in,total_width_in,total_height_in,total_weight_lb,package_groups,pickup_city_state,delivery_city_state,load_details,additional_comment,status,created_at')
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('page_events')
-      .select('session_id,visitor_id,event_type,duration_seconds,occurred_at')
-      .gte('occurred_at', since.toISOString())
-      .order('occurred_at', { ascending: true }),
-    supabase.from('fleet_trucks').select('*').order('status').order('unit_number'),
-    supabase.from('freight_quotes').select('id,quote_request_id,quote_number,version,truck_ids,created_at').order('created_at', { ascending: false })
-  ]);
-
-  if (quotesResult.error || eventsResult.error || fleetResult.error || freightQuotesResult.error) {
-    console.error('Dashboard load failed:', quotesResult.error || eventsResult.error || fleetResult.error || freightQuotesResult.error);
+  let data;
+  try {
+    data = await apiRequest('dashboard');
+  } catch (error) {
+    console.error('Dashboard load failed:', error);
     showToast('Could not load dashboard data.', true);
     return;
   }
 
-  quoteRequests = quotesResult.data || [];
-  sessions = aggregateSessions(eventsResult.data || []);
-  fleetTrucks = fleetResult.data || [];
-  freightQuotes = freightQuotesResult.data || [];
+  quoteRequests = data.quoteRequests || [];
+  sessions = aggregateSessions(data.events || []);
+  fleetTrucks = data.fleetTrucks || [];
+  freightQuotes = data.freightQuotes || [];
+  showRegistrationWarnings(data.expiredTrucks || []);
   renderStatistics();
   renderAnalytics();
   renderRequests();
@@ -406,17 +433,12 @@ async function updateStatus(request, nextStatus, select = null, rerender = true)
   if (previous === nextStatus) return true;
   if (select) select.disabled = true;
   let error = null;
-  if (nextStatus === 'confirmed') {
+  try {
     const latestQuote = freightQuotes.find(quote => quote.quote_request_id === request.id && Array.isArray(quote.truck_ids) && quote.truck_ids.length);
-    if (!latestQuote) {
-      error = { message: 'Create and save a quote with at least one truck first.' };
-    } else {
-      ({ error } = await supabase.rpc('confirm_freight_inquiry', { p_quote_request_id: request.id, p_freight_quote_id: latestQuote.id }));
-    }
-  } else if (nextStatus === 'closed') {
-    ({ error } = await supabase.rpc('close_freight_inquiry', { p_quote_request_id: request.id }));
-  } else {
-    ({ error } = await supabase.from('quote_requests').update({ status: nextStatus }).eq('id', request.id));
+    if (nextStatus === 'confirmed' && !latestQuote) throw new Error('Create and save a quote with at least one truck first.');
+    await apiRequest('status', { requestId: request.id, status: nextStatus, quoteId: latestQuote?.id || null });
+  } catch (requestError) {
+    error = requestError;
   }
   if (select) select.disabled = false;
 
@@ -708,14 +730,10 @@ async function openQuoteModal(request) {
   renderTruckOptions();
   renderPackagePreview();
 
-  const { data, error } = await supabase
-    .from('freight_quotes')
-    .select('quote_number,version,created_at')
-    .eq('quote_request_id', request.id)
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  if (error) {
+  let data;
+  try {
+    data = (await apiRequest('quote_history', { requestId: request.id })).data;
+  } catch (error) {
     console.error('Quote history load failed:', error);
     showToast('Could not load quote history.', true);
     closeQuoteModal();
@@ -1104,15 +1122,20 @@ function editFleetTruck(truck) {
 }
 
 async function setFleetStatus(truck, status) {
-  const { data, error } = await supabase.from('fleet_trucks').update({ status, updated_at: new Date().toISOString() }).eq('id', truck.id).select('*').single();
-  if (error) {
+  let data;
+  let registrationExpired = false;
+  try {
+    const result = await apiRequest('fleet_status', { id: truck.id, status });
+    data = result.data;
+    registrationExpired = Boolean(result.registrationExpired);
+  } catch (error) {
     showToast(error.message || 'Could not update the truck.', true);
     return;
   }
   const index = fleetTrucks.findIndex(item => item.id === truck.id);
   if (index >= 0) fleetTrucks[index] = data;
   renderFleet();
-  showToast(status === 'archived' ? 'Truck archived.' : status === 'available' && truck.status === 'archived' ? 'Truck restored.' : 'Truck status updated.');
+  showToast(registrationExpired ? 'Registration is expired. Truck remains inactive.' : status === 'archived' ? 'Truck archived.' : status === 'available' && truck.status === 'archived' ? 'Truck restored.' : 'Truck status updated.');
 }
 
 function renderFleet() {
@@ -1203,24 +1226,26 @@ fleetForm.addEventListener('submit', async event => {
     notes: String(formData.get('notes') || '').trim(),
     updated_at: new Date().toISOString()
   };
+  const requestedStatus = payload.status;
   const button = document.querySelector('#fleet-save');
   button.disabled = true;
   button.textContent = id ? 'Updating...' : 'Saving...';
-  const result = id
-    ? await supabase.from('fleet_trucks').update(payload).eq('id', id).select('*').single()
-    : await supabase.from('fleet_trucks').insert(payload).select('*').single();
-  button.disabled = false;
-  if (result.error) {
+  let result;
+  try {
+    result = await apiRequest('fleet_save', { ...payload, ...(id ? { id } : {}) });
+  } catch (error) {
     button.textContent = id ? 'Update truck' : 'Save truck';
-    showToast(result.error.message || 'Could not save the truck.', true);
+    button.disabled = false;
+    showToast(error.message || 'Could not save the truck.', true);
     return;
   }
+  button.disabled = false;
   const existingIndex = fleetTrucks.findIndex(truck => truck.id === result.data.id);
   if (existingIndex >= 0) fleetTrucks[existingIndex] = result.data;
   else fleetTrucks.push(result.data);
   resetFleetForm();
   renderFleet();
-  showToast(id ? 'Truck updated.' : 'Truck added.');
+  showToast(result.data.status === 'inactive' && requestedStatus !== 'inactive' ? 'Truck saved as inactive because its registration is expired.' : id ? 'Truck updated.' : 'Truck added.');
 });
 
 document.querySelector('#add-line-item').addEventListener('click', () => createLineItem());
@@ -1261,12 +1286,6 @@ quoteForm.addEventListener('submit', async event => {
     return;
   }
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData.user) {
-    showToast('Your session expired. Sign in again.', true);
-    return;
-  }
-
   const formData = new FormData(quoteForm);
   const payload = {
     quote_request_id: activeInquiry.id,
@@ -1297,28 +1316,25 @@ quoteForm.addEventListener('submit', async event => {
     valid_until: String(formData.get('valid_until') || ''),
     payment_terms: String(formData.get('payment_terms') || '').trim(),
     notes: String(formData.get('notes') || '').trim(),
-    company_details: DEMO_COMPANY_DETAILS,
-    created_by: userData.user.id
+    company_details: DEMO_COMPANY_DETAILS
   };
 
   const button = document.querySelector('#generate-quote-btn');
   button.disabled = true;
   button.textContent = 'Saving & generating...';
 
-  const { data, error } = await supabase
-    .from('freight_quotes')
-    .insert(payload)
-    .select('*')
-    .single();
-
-  button.disabled = false;
-  button.textContent = 'Save & generate PDF';
-
-  if (error) {
+  let data;
+  try {
+    data = (await apiRequest('quote_create', payload)).data;
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = 'Save & generate PDF';
     console.error('Quote creation failed:', error);
-    showToast('Could not save the quote.', true);
+    showToast(error.message || 'Could not save the quote.', true);
     return;
   }
+  button.disabled = false;
+  button.textContent = 'Save & generate PDF';
 
   try {
     const pdf = buildQuotePdf(data);
