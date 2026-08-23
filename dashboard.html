@@ -64,7 +64,10 @@
           <h1>Dashboard</h1>
           <p>Website analytics and incoming freight quote requests.</p>
         </div>
-        <button class="primary-btn compact" id="refresh-btn" type="button">Refresh <span>↻</span></button>
+        <div class="intro-actions">
+          <button class="secondary-btn" id="fleet-btn" type="button">Manage fleet</button>
+          <button class="primary-btn compact" id="refresh-btn" type="button">Refresh <span>↻</span></button>
+        </div>
       </section>
 
       <section class="stats-grid" aria-label="Dashboard summary">
@@ -159,18 +162,27 @@
             <label>CLIENT NAME<input name="client_name" type="text" required maxlength="160"></label>
             <label>COMPANY<input name="client_company" type="text" required maxlength="200"></label>
             <label>EMAIL<input name="client_email" type="email" required maxlength="320"></label>
+            <label>PHONE<input name="client_phone" type="tel" required maxlength="50"></label>
           </div>
         </section>
 
         <section class="form-section">
           <div class="form-section-head"><span>02</span><div><h3>Shipment information</h3><p>Describe the equipment, route, and freight.</p></div></div>
           <div class="form-grid two">
-            <label>TRUCK / EQUIPMENT<input name="truck" type="text" required maxlength="160" placeholder="e.g. 53' Dry Van"></label>
+            <label class="span-two">AVAILABLE TRUCKS
+              <select id="quote-trucks" multiple required aria-describedby="truck-match-help"></select>
+              <small id="truck-match-help">Only available, registration-valid trucks that can carry at least one package group are shown. Select one or more.</small>
+            </label>
             <label>FREIGHT WEIGHT<input name="freight_weight" type="text" required maxlength="160" placeholder="e.g. 24,000 lb"></label>
             <label>FREIGHT DIMENSIONS<input name="freight_dimensions" type="text" required maxlength="240" placeholder="e.g. 48 x 40 x 60 in"></label>
             <label>ORIGIN<input name="origin" type="text" required maxlength="240"></label>
             <label>DESTINATION<input name="destination" type="text" required maxlength="240"></label>
             <label class="span-two">WHAT IS BEING TRANSPORTED<textarea name="freight_description" required maxlength="4000" rows="4"></textarea></label>
+          </div>
+          <div class="package-preview" id="quote-package-preview"></div>
+          <div class="allocation-panel" id="truck-allocation-panel" hidden>
+            <div class="allocation-head"><strong>PACKAGE ALLOCATION</strong><span>Assign every package to a selected truck.</span></div>
+            <div id="truck-allocations"></div>
           </div>
         </section>
 
@@ -217,6 +229,40 @@
         </div>
         <p>The PDF will be downloaded before your email app opens. Attach the downloaded file to the prepared email.</p>
       </section>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="fleet-modal" hidden>
+    <section class="quote-modal fleet-modal" role="dialog" aria-modal="true" aria-labelledby="fleet-modal-title">
+      <header class="quote-modal-head">
+        <div><span class="section-label">OPERATIONS</span><h2 id="fleet-modal-title">Fleet</h2><p>Add, update, disable, archive, or restore trucks.</p></div>
+        <button class="modal-close" id="fleet-modal-close" type="button" aria-label="Close fleet">×</button>
+      </header>
+      <div class="fleet-layout">
+        <form class="fleet-form" id="fleet-form">
+          <div class="fleet-form-head"><div><span class="section-label" id="fleet-form-label">NEW TRUCK</span><h3 id="fleet-form-title">Add a truck</h3></div><button class="text-btn" id="fleet-form-reset" type="button">Clear</button></div>
+          <input name="id" type="hidden">
+          <div class="form-grid two">
+            <label>TRUCK NAME<input name="name" required maxlength="120"></label>
+            <label>TYPE<input name="truck_type" required maxlength="100" placeholder="e.g. 53 ft Dry Van"></label>
+            <label>UNIT ID<input name="unit_number" required maxlength="40"></label>
+            <label>PLATE NUMBER<input name="plate_number" required maxlength="20"></label>
+            <label>REGISTRATION STATE<input name="registration_state" required maxlength="2" pattern="[A-Za-z]{2}" placeholder="IL"></label>
+            <label>REGISTRATION EXPIRES<input name="registration_expires_on" type="date" required></label>
+            <label>STATUS<select name="status" required><option value="available">Available</option><option value="assigned">Assigned</option><option value="maintenance">Maintenance</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></label>
+            <label>MAX PAYLOAD (LB)<input name="max_payload_lb" type="number" min="1" step="0.01" required></label>
+            <label>CARGO LENGTH (IN)<input name="cargo_length_in" type="number" min="1" step="0.01" required></label>
+            <label>CARGO WIDTH (IN)<input name="cargo_width_in" type="number" min="1" step="0.01" required></label>
+            <label>CARGO HEIGHT (IN)<input name="cargo_height_in" type="number" min="1" step="0.01" required></label>
+            <label class="span-two">NOTES<textarea name="notes" rows="3" maxlength="2000"></textarea></label>
+          </div>
+          <button class="primary-btn full" id="fleet-save" type="submit">Save truck</button>
+        </form>
+        <div class="fleet-list-wrap">
+          <div class="fleet-summary"><strong id="fleet-count">0 trucks</strong><span>Expired registrations are excluded from quote matching.</span></div>
+          <div class="fleet-list" id="fleet-list"></div>
+        </div>
+      </div>
     </section>
   </div>
 
