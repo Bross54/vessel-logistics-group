@@ -132,9 +132,11 @@ button, input, textarea { font: inherit; }
 .demo-note { margin-top: 28px; padding: 14px 16px; color: #7a5b47; background: #fff7e8; border-left: 3px solid var(--orange); font-size: 11px; }
 .quote-form { padding: 38px; background: #fff; box-shadow: var(--shadow); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
-.quote-form label { display: grid; gap: 7px; margin-bottom: 17px; color: #7c858b; font-size: 9px; font-weight: 700; letter-spacing: .12em; }\n.quote-form .hp-field { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
-.quote-form input, .quote-form textarea { width: 100%; border: 1px solid #d9dcde; border-radius: 0; padding: 13px 14px; color: var(--ink); background: #fafafa; outline: 0; resize: vertical; }
-.quote-form input:focus, .quote-form textarea:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(243,108,33,.1); }
+.quote-form label { display: grid; gap: 7px; margin-bottom: 17px; color: #7c858b; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+.quote-form .hp-field { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.quote-form input, .quote-form textarea, .quote-form select { width: 100%; border: 1px solid #d9dcde; border-radius: 0; padding: 13px 14px; color: var(--ink); background: #fafafa; outline: 0; resize: vertical; }
+.quote-form select { min-height: 48px; cursor: pointer; }
+.quote-form input:focus, .quote-form textarea:focus, .quote-form select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(243,108,33,.1); }
 .submit-btn { width: 100%; border: 0; }
 .form-status { min-height: 20px; margin: 12px 0 0; text-align: center; color: #14703b; font-size: 12px; }
 
